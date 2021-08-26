@@ -8,4 +8,4 @@ Opacus Lab is meant to be an experimental counterpart of the main [Opacus](https
 
 
 ## License
-This code is released under Apache 2.0, as found in the [LICENSE](https://github.com/facebookresearch/opacus-lab/tree/master/LICENSE) file.
+This code is released under Apache 2.0, as found in the [LICENSE](https://github.com/facebookresearch/opacus-lab/tree/main/LICENSE) file.
