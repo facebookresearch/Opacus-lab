@@ -1,32 +1,34 @@
 import torch
 import torch.nn as nn
 import torch.utils.checkpoint
-from torch.optim import AdamW as Adam
 from torch.nn import LayerNorm
 from functools import partial
 from typing import Optional, Tuple, List, Union
-from GPT2.model.attention import AttentionLayer, Past
-from GPT2.model.masking import PadMasking, FutureMasking
-from GPT2.model.embedding import PositionalEmbedding, TokenEmbedding
-from GPT2.model.feedforward import PositionwiseFeedForward
+from .attention import AttentionLayer, Past
+from .masking import PadMasking, FutureMasking
+from .embedding import PositionalEmbedding, TokenEmbedding
+from .feedforward import PositionwiseFeedForward
+
 
 def factorize_linear_layer(LinearLayer, rank):
-    U,S,V = torch.svd(LinearLayer.weight)
+    U, S, V = torch.svd(LinearLayer.weight)
     lr_S = S[:rank]
-    lr_U = U[:,0:rank]
+    lr_U = U[:, 0:rank]
     lr_V = V.t()[:rank]
     out_features = lr_U.shape[0]
     in_features = lr_V.shape[1]
     bias = LinearLayer.bias is not None
-    lr_LinearLayer = FactorizedLinear(in_features, out_features, rank, bias=bias)
+    lr_LinearLayer = FactorizedLinear(
+        in_features, out_features, rank, bias=bias)
     lr_LinearLayer.R.weight = nn.Parameter(torch.sqrt(lr_S).diag() @ lr_V)
     lr_LinearLayer.L.weight = nn.Parameter(lr_U @ torch.sqrt(lr_S).diag())
     if bias:
         lr_LinearLayer.L.bias = nn.Parameter(LinearLayer.bias)
-    return lr_LinearLayer    
-    
+    return lr_LinearLayer
+
+
 def lrp_linear_layer(LinearLayer, rank):
-    o,i = LinearLayer.weight.shape
+    o, i = LinearLayer.weight.shape
     bias = LinearLayer.bias is not None
     lrp_LinearLayer = LowRankPerturbedLinear(i, o, rank, bias=bias)
     lrp_LinearLayer.core.weight = nn.Parameter(
@@ -34,38 +36,40 @@ def lrp_linear_layer(LinearLayer, rank):
     if bias:
         lrp_LinearLayer.core.bias = nn.Parameter(
             LinearLayer.bias, requires_grad=False)
-    return lrp_LinearLayer 
+    return lrp_LinearLayer
+
 
 class FactorizedLinear(nn.Module):
     def __init__(self,
                  in_features: int,
                  out_features: int,
-                 rank : int,
+                 rank: int,
                  bias: bool = True):
         super().__init__()
         self.R = nn.Linear(in_features, rank, bias=False)
         self.L = nn.Linear(rank, out_features, bias=bias)
-        
+
     def forward(self, x: torch.Tensor):
         return self.L(self.R(x))
-    
+
+
 class LowRankPerturbedLinear(nn.Module):
     def __init__(self,
                  in_features: int,
                  out_features: int,
-                 rank : int,
-                 scale : float = 0.0001,
+                 rank: int,
+                 scale: float = 0.0001,
                  bias: bool = True):
         super().__init__()
         self.core = nn.Linear(
             in_features, out_features, bias=bias)
         self.LR = FactorizedLinear(in_features, out_features, rank, bias=bias)
         self.scale = scale
-        
+
     def forward(self, x: torch.Tensor):
         return self.scale*self.LR(x) + self.core(x)
 
- 
+
 class TransformerLayer(nn.Module):
     """
     Tensor          Type            Shape
@@ -78,6 +82,7 @@ class TransformerLayer(nn.Module):
     output 2 (*)    float           (..., past_len + seq_len, dims)
     ===========================================================================
     """
+
     def __init__(self,
                  heads: int,
                  dims: int,
@@ -99,7 +104,8 @@ class TransformerLayer(nn.Module):
         a, past = self.attn(a, a, a, past, mask)
         x = x + a
         x = x + self.ff(self.ln_ff(x))
-        return x 
+        return x
+
 
 class Transformer(nn.Module):
     """
@@ -112,6 +118,7 @@ class Transformer(nn.Module):
     output 2 (**)   float           (..., past_len + seq_len, dims)
     ===========================================================================
     """
+
     def __init__(self,
                  layers: int,
                  pad_idx: int,
@@ -139,24 +146,23 @@ class Transformer(nn.Module):
             for _ in range(layers)])
         self.ln_head = LayerNorm(dims)
         self.finetune = finetune
-        
+
         if use_low_rank_head and lm_head_rank < dims:
             if perturb:
                 self.lm_head = LowRankPerturbedLinear(
-                dims, words, rank=lm_head_rank, bias=False)
+                    dims, words, rank=lm_head_rank, bias=False)
             else:
                 self.lm_head = FactorizedLinear(
-                dims, words, rank=lm_head_rank, bias=False)
-        else:   
+                    dims, words, rank=lm_head_rank, bias=False)
+        else:
             self.lm_head = nn.Linear(dims, words, bias=False)
-            
-         
+
     def forward(self,
                 x: torch.Tensor,
                 past: Optional[List[Past]] = None,
                 use_grad_ckpt: bool = False
                 ) -> Union[torch.Tensor, Tuple[torch.Tensor, List[Past]]]:
-        
+
         torch.set_grad_enabled(self.finetune < 0)
         offset = past[0][0].size(-2) if past is not None else 0
 
@@ -164,12 +170,11 @@ class Transformer(nn.Module):
         mask = self.pad_masking(x, offset)
         if not self.bidirectional:
             mask = mask + self.future_masking(x, offset)
-        
+
         x = self.token_embedding(x) + self.positional_embedding(x, offset)
         x = self.dropout_embedding(x)
-        
+
         # Apply transformer layers sequentially.
-        present = []
         for i, transformer in enumerate(self.transformers):
             torch.set_grad_enabled(self.finetune <= i)
             if self.training and use_grad_ckpt:

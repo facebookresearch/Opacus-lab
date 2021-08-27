@@ -5,6 +5,7 @@ from typing import Optional, Tuple
 
 Past = Tuple[torch.Tensor, torch.Tensor]
 
+
 class BaseAttention(nn.Module):
     """
     Tensor          Type            Shape
@@ -17,7 +18,9 @@ class BaseAttention(nn.Module):
     output          float           (..., query_len, dims)
     ===========================================================================
     """
-    def __init__(self, dropout: float = 0.1, max_position_embeddings: int = 1024):
+
+    def __init__(self, dropout: float = 0.1,
+                 max_position_embeddings: int = 1024):
         super().__init__()
         self.dropout = nn.Dropout(dropout)
         # register buffer for masked_bias and max_position_embeddings
@@ -33,7 +36,7 @@ class BaseAttention(nn.Module):
             ),
         )
         self.register_buffer("masked_bias", torch.tensor(-1e4))
-        
+
     def causal_masking(self, x, q, k):
         '''
         This routine is based off (and nearly identical to) the code in lines
@@ -41,10 +44,9 @@ class BaseAttention(nn.Module):
         (Version 4.7.0)
         '''
         q_len, k_len = q.size(-2), k.size(-2)
-        causal_mask = self.bias[:, :, k_len - q_len : k_len,:k_len].bool()
+        causal_mask = self.bias[:, :, k_len - q_len: k_len, :k_len].bool()
         return torch.where(
-                causal_mask, x, self.masked_bias.to(x.dtype))
-
+            causal_mask, x, self.masked_bias.to(x.dtype))
 
     def forward(self,
                 q: torch.Tensor,
@@ -53,8 +55,8 @@ class BaseAttention(nn.Module):
                 mask: Optional[torch.Tensor] = None) -> torch.Tensor:
         x = torch.matmul(q, k.transpose(-1, -2))
         x /= math.sqrt(k.size(-1))
-        x = self.causal_masking(x,q,k)
-        x = nn.Softmax(dim=-1)(x)         
+        x = self.causal_masking(x, q, k)
+        x = nn.Softmax(dim=-1)(x)
         x = self.dropout(x)
         x = torch.matmul(x, v)
         return x
@@ -72,6 +74,7 @@ class MultiHeadAttention(BaseAttention):
     output          float           (..., query_len, dims)
     ===========================================================================
     """
+
     def __init__(self, heads: int, dropout: float = 0.1):
         super().__init__(dropout)
         self.heads = heads
@@ -114,6 +117,7 @@ class AttentionLayer(nn.Module):
     output 2 (*)    float           (..., past_len + kv_len, dims)
     ===========================================================================
     """
+
     def __init__(self, heads: int, dims: int, dropout: float = 0.1):
         super().__init__()
         self.attn = MultiHeadAttention(heads, dropout)

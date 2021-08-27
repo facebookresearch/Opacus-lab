@@ -11,6 +11,7 @@ class PadMasking(nn.Module):
     output          float           (..., seq_len, seq_len + offset)
     ===========================================================================
     """
+
     def __init__(self, pad_idx: int):
         super().__init__()
         self.pad_idx = pad_idx
@@ -33,6 +34,7 @@ class FutureMasking(nn.Module):
     output          float           (..., seq_len, seq_len + offset)
     ===========================================================================
     """
+
     def forward(self, x: torch.Tensor, offset: int = 0) -> torch.Tensor:
         seq_len = x.size(-1)
 

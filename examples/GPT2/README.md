@@ -17,6 +17,10 @@ reducing the # of parameters that DP-SGD fine-tunes).
 ## Instructions
 Begin by moving into the `opacus-lab/GPT2/` directory.
 
+### Requirements
+Other than Pytorch and Opacus the only requirement is `transformers==4.7`.
+
+
 ### Download Data
 Run `bash prepare-wikitext-103.sh`
 You can skip this if you already have the dataset downloaded.

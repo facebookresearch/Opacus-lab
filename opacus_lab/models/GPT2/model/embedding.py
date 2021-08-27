@@ -12,10 +12,11 @@ class PositionalEmbedding(nn.Module):
     output          float           (..., seq_len, embedding_dim)
     ===========================================================================
     """
+
     def __init__(self, seq_len: int, dims: int):
         super().__init__()
         self.emb = nn.Embedding(seq_len, dims)
-    
+
     def reset_parameters(self):
         nn.init.normal_(self.emb.weight, std=0.02)
 
@@ -55,10 +56,11 @@ class TokenEmbedding(nn.Module):
                                     or (..., seq_len, num_embeddings)
     ===========================================================================
     """
+
     def __init__(self, words: int, dims: int):
         super().__init__()
         self.emb = nn.Embedding(words, dims)
-    
+
     def reset_parameters(self):
         nn.init.normal_(self.emb.weight, std=0.02)
 
