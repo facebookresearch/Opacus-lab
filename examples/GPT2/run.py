@@ -12,14 +12,14 @@ from transformers import GPT2LMHeadModel
 
 
 parser = argparse.ArgumentParser(description="GPT-2 implementation for Opacus")
-parser.add_argument(
+'''parser.add_argument(
     "-sr",
     "--sample-rate",
     type=float,
     default=0.001,
     metavar="SR",
     help="sample rate used for batch construction (default: 0.001)",
-)
+)'''
 parser.add_argument(
     "-bs",
     "--batch-size",
@@ -259,12 +259,12 @@ def _dataloading(args):
 def _training(args, model, loaders):
     trainloader, testloader, valloader = loaders
     n_samples = len(trainloader.dataset)
-    sample_rate = args.virtual_batch_size/n_samples
+    sample_rate = (args.batch_size*args.virtual_batch_size)/n_samples
     optim, scheduler = set_up_optim(
         model, args.device, dp=(not args.disable_dp),
         finetune=args.finetune_layers, batch_size=args.batch_size,
         noise_multiplier=args.sigma, max_grad_norm=args.gradclip,
-        alphas=[2, 4, 8, 16, 32], lr=args.lr, sample_rate=sample_rate
+        alphas=[2, 4, 8, 16, 32], lr=args.lr, sample_rate=sample_rate,
         warmup_steps=args.warmup_steps, Huggingface=args.skip_refactor)
     L = dict()
     for e in range(args.epochs):

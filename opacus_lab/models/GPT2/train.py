@@ -32,7 +32,7 @@ def finetunable_GPT2_params(model, finetune):
     return params
 
 def set_up_optim(model, device, solver='AdamW', dp=False, finetune=-1, sample_rate=1,
-            alphas=[3,10,100], noise_multiplier=0.01, max_grad_norm=0.1, batch_size=1,
+            alphas=[2], noise_multiplier=0.01, max_grad_norm=0.1, batch_size=1,
             warmup_steps=5000, lr=0.001, Huggingface=False, perturb=False):
     model =  model.to(device)
     if Huggingface:
@@ -148,13 +148,17 @@ def train(
             if delta >= 1:
                 print(f"Train Epoch: {epoch} \t Loss: {np.mean(losses):.6f}")
             else:
-                epsilon, best_alpha = optimizer.privacy_engine.get_privacy_spent(delta)
+                rdp = optimizer.privacy_engine.get_renyi_divergence()[0]
+                print(rdp)
+                epsilon = rdp*optimizer.privacy_engine.steps/virtual_batch_size
+                print(epsilon)
+                alpha = optimizer.privacy_engine.alphas[0]
                 print(
                     f"Train Epoch: {epoch} \t"
                     f"Loss: {np.mean(losses[-20:]):.4f} "
-                    f"(ε = {epsilon:.2f}, δ = {delta}) for α = {best_alpha}"
+                    f"ε = {epsilon:.4f} for α = {alpha}"
                 )
-                eps.append((epsilon, best_alpha))
+                eps.append((epsilon, alpha))
         if (i+1) % val_freq == 0:
             val_loss = test(model, device, val_loader, epoch,
                         val_iters, print_freq=val_iters, Huggingface=Huggingface,
