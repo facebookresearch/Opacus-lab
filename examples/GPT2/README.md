@@ -20,17 +20,23 @@ Begin by moving into the `opacus-lab/GPT2/` directory.
 ### Requirements
 Other than Pytorch and Opacus the only requirement is `transformers==4.7`.
 
+### Python Path
+Set `export PYTHONPATH=~/Opacus-lab/` or whatever path the Opacus-lab base
+directory is in.
 
 ### Download Data
 Run `bash prepare-wikitext-103.sh`
+
 You can skip this if you already have the dataset downloaded.
 
 ### Preprocess Data
 Run `python preprocess-wikitext-103.py`
+
 This converts the raw text files into Pytorch tensors using on the GPT tokenizer.
 
 ### Train Model
 Run `python run.py`
+
 You can use the `-h` flag to learn more about the various arguments that are
 currently supported.
 

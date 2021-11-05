@@ -7,8 +7,8 @@ from torch.utils.data import DataLoader
 from transformers import GPT2LMHeadModel
 # until opacus-lab is pip installable as a module we
 # work around by just appending a sys path
-import sys
-sys.path.append('../../../opacus-lab')
+#import sys
+#sys.path.append('../../../opacus-lab')
 
 
 parser = argparse.ArgumentParser(description="GPT-2 implementation for Opacus")
@@ -258,11 +258,13 @@ def _dataloading(args):
 
 def _training(args, model, loaders):
     trainloader, testloader, valloader = loaders
+    n_samples = len(trainloader.dataset)
+    sample_rate = args.virtual_batch_size/n_samples
     optim, scheduler = set_up_optim(
         model, args.device, dp=(not args.disable_dp),
         finetune=args.finetune_layers, batch_size=args.batch_size,
         noise_multiplier=args.sigma, max_grad_norm=args.gradclip,
-        alphas=[2, 4, 8, 16, 32], lr=args.lr,
+        alphas=[2, 4, 8, 16, 32], lr=args.lr, sample_rate=sample_rate
         warmup_steps=args.warmup_steps, Huggingface=args.skip_refactor)
     L = dict()
     for e in range(args.epochs):

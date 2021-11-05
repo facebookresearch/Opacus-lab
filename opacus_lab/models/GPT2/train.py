@@ -31,7 +31,7 @@ def finetunable_GPT2_params(model, finetune):
             param.requires_grad = False
     return params
 
-def set_up_optim(model, device, solver='AdamW', dp=False, finetune=-1, sample_rate=0.01,
+def set_up_optim(model, device, solver='AdamW', dp=False, finetune=-1, sample_rate=1,
             alphas=[3,10,100], noise_multiplier=0.01, max_grad_norm=0.1, batch_size=1,
             warmup_steps=5000, lr=0.001, Huggingface=False, perturb=False):
     model =  model.to(device)
