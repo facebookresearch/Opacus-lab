@@ -8,7 +8,7 @@ Even though we do not accept pull requests to this repo, if you used or modified
 
 ## Want to contribute to Opacus?
 
-Please visit the [main Opacus repository](https://github.com/pytorch/opacus/blob/master/CONTRIBUTING.md).
+Please visit the [main Opacus repository](https://github.com/pytorch/opacus/blob/main/CONTRIBUTING.md).
 
 
 ## License
