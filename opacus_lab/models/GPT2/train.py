@@ -149,9 +149,7 @@ def train(
                 print(f"Train Epoch: {epoch} \t Loss: {np.mean(losses):.6f}")
             else:
                 rdp = optimizer.privacy_engine.get_renyi_divergence()[0]
-                print(rdp)
-                epsilon = rdp*optimizer.privacy_engine.steps/virtual_batch_size
-                print(epsilon)
+                epsilon = rdp*optimizer.privacy_engine.steps
                 alpha = optimizer.privacy_engine.alphas[0]
                 print(
                     f"Train Epoch: {epoch} \t"
