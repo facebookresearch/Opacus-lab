@@ -4,8 +4,8 @@ from torch.utils.data import Dataset
 
 def load_wikitext(path):
     corpus = dict()
-    for dset in ['valid', 'train', 'test']:
-        corpus[dset] = torch.load(f'{path}/wikitext-103-{dset}-corpus.pt')
+    for dset in ["valid", "train", "test"]:
+        corpus[dset] = torch.load(f"{path}/wikitext-103-{dset}-corpus.pt")
     return corpus
 
 
@@ -16,11 +16,11 @@ class CorpusDataset(Dataset):
         self.seqlen = seqlen
 
     def __len__(self):
-        return int(len(self.corpus)/self.seqlen)
+        return int(len(self.corpus) / self.seqlen)
 
     def __getitem__(self, item):
-        idx = item*self.seqlen
-        return self.corpus[idx:idx+self.seqlen]
+        idx = item * self.seqlen
+        return self.corpus[idx : idx + self.seqlen]
 
 
 class UserLvlDataset(Dataset):

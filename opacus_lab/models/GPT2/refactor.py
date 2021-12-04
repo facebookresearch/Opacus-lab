@@ -1,24 +1,26 @@
 import torch
 import torch.nn as nn
 from transformers import GPT2Tokenizer
-from .model.transformer import Transformer, TransformerLayer
+
 from .model.attention import AttentionLayer
-from .model.feedforward import PositionwiseFeedForward
 from .model.embedding import PositionalEmbedding, TokenEmbedding
+from .model.feedforward import PositionwiseFeedForward
+from .model.transformer import Transformer, TransformerLayer
 
 
-def refactor_transformer(GPT2, size='S', use_low_rank=False, lm_head_rank=768,
-                         dropout=0.0, perturb=False):
+def refactor_transformer(
+    GPT2, size="S", use_low_rank=False, lm_head_rank=768, dropout=0.0, perturb=False
+):
 
-    size_assertion_failure_str = f'Value {size} is not a valid size. '
+    size_assertion_failure_str = f"Value {size} is not a valid size. "
     size_assertion_failure_str += 'Size must be one of: "S" (small), '
     size_assertion_failure_str += '"M" (medium), "L" (large),'
     size_assertion_failure_str += '"XL" (extra large),'
     size_assertion_failure_str += 'or "D" (distilled).'
-    assert size in {'S', 'D', 'M', 'L', 'XL'}, size_assertion_failure_str
+    assert size in {"S", "D", "M", "L", "XL"}, size_assertion_failure_str
 
-    size2dim = {'S': 768, 'M': 1024, 'L': 1280, 'XL': 1600, 'D': 768}
-    size2blks = {'S': 12, 'M': 24, 'L': 36, 'XL': 48, 'D': 6}
+    size2dim = {"S": 768, "M": 1024, "L": 1280, "XL": 1600, "D": 768}
+    size2blks = {"S": 12, "M": 24, "L": 36, "XL": 48, "D": 6}
     # specify some "architecture size" vars
     dim = size2dim[size]
     n_blks = size2blks[size]
@@ -46,9 +48,8 @@ def refactor_transformer(GPT2, size='S', use_low_rank=False, lm_head_rank=768,
         Attention.linear.weight = nn.Parameter(Proj.weight.t())
         Attention.linear.bias = nn.Parameter(Proj.bias)
 
-        q_weight, k_weight, v_weight = torch.split(
-            Conv1D.weight, [dim]*3, dim=-1)
-        q_bias, k_bias, v_bias = torch.split(Conv1D.bias, [dim]*3, dim=-1)
+        q_weight, k_weight, v_weight = torch.split(Conv1D.weight, [dim] * 3, dim=-1)
+        q_bias, k_bias, v_bias = torch.split(Conv1D.bias, [dim] * 3, dim=-1)
 
         Attention.proj_q.weight = nn.Parameter(q_weight.t())
         Attention.proj_k.weight = nn.Parameter(k_weight.t())
@@ -98,9 +99,18 @@ def refactor_transformer(GPT2, size='S', use_low_rank=False, lm_head_rank=768,
     # max sequence len = 1024
     # head expansion factor = 4
     T = Transformer(
-        n_blks, 50256, vocab_size, 1024, n_heads, dim, 4,
-        use_low_rank_head=use_low_rank, lm_head_rank=lm_head_rank,
-        perturb=perturb, dropout=dropout)
+        n_blks,
+        50256,
+        vocab_size,
+        1024,
+        n_heads,
+        dim,
+        4,
+        use_low_rank_head=use_low_rank,
+        lm_head_rank=lm_head_rank,
+        perturb=perturb,
+        dropout=dropout,
+    )
 
     # first refactor the transformer stack
     for i, block in enumerate(GPT2.transformer.h):
@@ -120,8 +130,8 @@ def refactor_transformer(GPT2, size='S', use_low_rank=False, lm_head_rank=768,
 
 
 def test_refactor(pretrained, refactored):
-    tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
-    string = torch.tensor(tokenizer.encode('this is a test'))
+    tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
+    string = torch.tensor(tokenizer.encode("this is a test"))
     pretrained = pretrained.eval()
     refactored = refactored.eval()
     X = pretrained(string)

@@ -1,7 +1,8 @@
 import math
+from typing import Optional, Tuple
+
 import torch
 import torch.nn as nn
-from typing import Optional, Tuple
 
 Past = Tuple[torch.Tensor, torch.Tensor]
 
@@ -19,8 +20,7 @@ class BaseAttention(nn.Module):
     ===========================================================================
     """
 
-    def __init__(self, dropout: float = 0.1,
-                 max_position_embeddings: int = 1024):
+    def __init__(self, dropout: float = 0.1, max_position_embeddings: int = 1024):
         super().__init__()
         self.dropout = nn.Dropout(dropout)
         # register buffer for masked_bias and max_position_embeddings
@@ -28,31 +28,29 @@ class BaseAttention(nn.Module):
         self.mpe = max_position_embeddings
         self.register_buffer(
             "bias",
-            torch.tril(
-                torch.ones(
-                    (self.mpe, self.mpe),
-                    dtype=torch.uint8)).view(
-                        1, 1, self.mpe, self.mpe
+            torch.tril(torch.ones((self.mpe, self.mpe), dtype=torch.uint8)).view(
+                1, 1, self.mpe, self.mpe
             ),
         )
         self.register_buffer("masked_bias", torch.tensor(-1e4))
 
     def causal_masking(self, x, q, k):
-        '''
+        """
         This routine is based off (and nearly identical to) the code in lines
         #188-#193 of Huggingface's transformers/models/gpt2/modeling_gpt2.py.
         (Version 4.7.0)
-        '''
+        """
         q_len, k_len = q.size(-2), k.size(-2)
-        causal_mask = self.bias[:, :, k_len - q_len: k_len, :k_len].bool()
-        return torch.where(
-            causal_mask, x, self.masked_bias.to(x.dtype))
+        causal_mask = self.bias[:, :, k_len - q_len : k_len, :k_len].bool()
+        return torch.where(causal_mask, x, self.masked_bias.to(x.dtype))
 
-    def forward(self,
-                q: torch.Tensor,
-                k: torch.Tensor,
-                v: torch.Tensor,
-                mask: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(
+        self,
+        q: torch.Tensor,
+        k: torch.Tensor,
+        v: torch.Tensor,
+        mask: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
         x = torch.matmul(q, k.transpose(-1, -2))
         x /= math.sqrt(k.size(-1))
         x = self.causal_masking(x, q, k)
@@ -79,11 +77,13 @@ class MultiHeadAttention(BaseAttention):
         super().__init__(dropout)
         self.heads = heads
 
-    def forward(self,
-                q: torch.Tensor,
-                k: torch.Tensor,
-                v: torch.Tensor,
-                mask: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(
+        self,
+        q: torch.Tensor,
+        k: torch.Tensor,
+        v: torch.Tensor,
+        mask: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
         # Split the tensors to multi-heads.
         q = q.view(q.size()[:-1] + (self.heads, q.size(-1) // self.heads))
         k = k.view(k.size()[:-1] + (self.heads, k.size(-1) // self.heads))
@@ -97,10 +97,13 @@ class MultiHeadAttention(BaseAttention):
             mask = mask.unsqueeze(-3)
 
         # Calculate multi-headed attentions and merge them into one.
-        return (super().forward(q, k, v, mask)
-                .transpose(-3, -2)
-                .contiguous()
-                .view(q.size()[:-3] + (q.size(-2), v.size(-1) * self.heads)))
+        return (
+            super()
+            .forward(q, k, v, mask)
+            .transpose(-3, -2)
+            .contiguous()
+            .view(q.size()[:-3] + (q.size(-2), v.size(-1) * self.heads))
+        )
 
 
 class AttentionLayer(nn.Module):
@@ -126,13 +129,14 @@ class AttentionLayer(nn.Module):
         self.proj_v = nn.Linear(dims, dims)
         self.linear = nn.Linear(dims, dims)
 
-    def forward(self,
-                q: torch.Tensor,
-                k: torch.Tensor,
-                v: torch.Tensor,
-                past: Optional[Past] = None,
-                mask: Optional[torch.Tensor] = None
-                ) -> Tuple[torch.Tensor, Past]:
+    def forward(
+        self,
+        q: torch.Tensor,
+        k: torch.Tensor,
+        v: torch.Tensor,
+        past: Optional[Past] = None,
+        mask: Optional[torch.Tensor] = None,
+    ) -> Tuple[torch.Tensor, Past]:
         q, k, v = self.proj_q(q), self.proj_k(k), self.proj_v(v)
         # Reuse attention keys and values by concatenating to the current ones.
         if past is not None:
