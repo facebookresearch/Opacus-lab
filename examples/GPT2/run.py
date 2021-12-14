@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# Copyright (c) Meta Platforms, Inc. and its affiliates. All Rights Reserved
+
 import argparse
 
 import torch

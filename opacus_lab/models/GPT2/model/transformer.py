@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# Copyright (c) Meta Platforms, Inc. and its affiliates. All Rights Reserved
+
 from functools import partial
 from typing import Optional, Tuple, List, Union
 

@@ -1,4 +1,6 @@
-import copy
+#!/usr/bin/env python3
+# Copyright (c) Meta Platforms, Inc. and its affiliates. All Rights Reserved
+
 
 import numpy as np
 import torch
@@ -6,9 +8,7 @@ import torch.nn as nn
 import torch.optim as optim
 import tqdm
 from opacus import PrivacyEngine
-from torch.utils.data import Dataset, DataLoader
 from transformers import AdamW, get_linear_schedule_with_warmup
-from transformers import GPT2Tokenizer, GPT2LMHeadModel
 
 
 def finetunable_GPT2_params(model, finetune):

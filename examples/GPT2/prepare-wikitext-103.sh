@@ -1,4 +1,5 @@
 #!/bin/bash
+# Copyright (c) Meta Platforms, Inc. and its affiliates. All Rights Reserved
 # This script is borrowed from pytorch/fairseq (version 0.6.2)
 # Adapted from https://github.com/facebookresearch/MIXER/blob/master/prepareData.sh
 

@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# Copyright (c) Meta Platforms, Inc. and its affiliates. All Rights Reserved
+
 import csv
 
 import torch
@@ -7,7 +10,7 @@ from transformers import GPT2Tokenizer
 tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
 
 """
-Script assumes in same directory as wikitext download (i.e. same directory 
+Script assumes in same directory as wikitext download (i.e. same directory
 that ran prepare-wikitext-103.sh)
 Change paths below as needed
 """
