@@ -72,10 +72,7 @@ def set_up_optim(
         privacy_engine.attach(optimizer)
     else:
         optimizer.virtual_step = lambda: None
-    scheduler = get_linear_schedule_with_warmup(
-        optimizer, num_warmup_steps=warmup_steps, num_training_steps=-1
-    )
-    return optimizer, scheduler
+    return optimizer
 
 
 def cross_entropy_eval(lm_logits, labels):
@@ -133,7 +130,6 @@ def train(
     optimizer,
     virtual_batch_size,
     max_iters,
-    scheduler,
     val_freq=2048,
     val_iters=512,
     print_freq=100,
@@ -157,7 +153,6 @@ def train(
         if ((i + 1) % virtual_batch_size == 0) or ((i + 1) == len(train_loader)):
             optimizer.step()
             optimizer.zero_grad()
-            scheduler.step()
         else:
             optimizer.virtual_step()
         losses.append(loss.item())
