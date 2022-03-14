@@ -306,3 +306,6 @@ if __name__ == "__main__":
     model = _load_model(args)
     loaders = _dataloading(args)
     _training(args, model, loaders)
+    if args.save_model:
+        torch.save(model, 'GPT2.pt')
+
