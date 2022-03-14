@@ -87,7 +87,7 @@ parser.add_argument(
     type=int,
     default=1,
     metavar="N",
-    help="number of epochs to train (default: 14)",
+    help="number of epochs to train (default: 1)",
 )
 parser.add_argument(
     "--lr",
