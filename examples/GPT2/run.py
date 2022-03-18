@@ -37,21 +37,15 @@ parser.add_argument(
     "-vbs",
     "--virtual-batch-size",
     type=int,
-    default=4,
+    default=2048,
     metavar="VBS",
     help="Virtual batch size (default: 4)",
 )
 parser.add_argument(
     "--seqlen",
     type=int,
-    default=32,
+    default=512,
     help="Sequence length to block text into (default: 32)",
-)
-parser.add_argument(
-    "--warmup-steps",
-    type=int,
-    default=4096,
-    help="# of warmup steps to take (default: 4096)",
 )
 parser.add_argument(
     "--size",
@@ -93,7 +87,7 @@ parser.add_argument(
     type=int,
     default=1,
     metavar="N",
-    help="number of epochs to train (default: 14)",
+    help="number of epochs to train (default: 1)",
 )
 parser.add_argument(
     "--lr",
@@ -298,7 +292,6 @@ def _training(args, model, loaders):
             optim,
             args.virtual_batch_size,
             args.max_train_iters,
-            scheduler,
             print_freq=args.print_freq,
             Huggingface=args.skip_refactor,
             delta=args.delta if not args.disable_dp else 1.0,
@@ -313,3 +306,5 @@ if __name__ == "__main__":
     model = _load_model(args)
     loaders = _dataloading(args)
     _training(args, model, loaders)
+    if args.save_model:
+        torch.save(model, "GPT2.pt")
