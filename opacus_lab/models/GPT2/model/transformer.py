@@ -2,7 +2,7 @@
 # Copyright (c) Meta Platforms, Inc. and its affiliates. All Rights Reserved
 
 from functools import partial
-from typing import Optional, Tuple, List, Union
+from typing import List, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -12,7 +12,7 @@ from torch.nn import LayerNorm
 from .attention import AttentionLayer, Past
 from .embedding import PositionalEmbedding, TokenEmbedding
 from .feedforward import PositionwiseFeedForward
-from .masking import PadMasking, FutureMasking
+from .masking import FutureMasking, PadMasking
 
 
 def factorize_linear_layer(LinearLayer, rank):
