@@ -3,16 +3,21 @@
 
 import torch
 import torch.nn as nn
-from transformers import GPT2Tokenizer
 
-from .model.attention import AttentionLayer
-from .model.embedding import PositionalEmbedding, TokenEmbedding
-from .model.feedforward import PositionwiseFeedForward
-from .model.transformer import Transformer, TransformerLayer
+from opacus_lab.models.GPT2.model.attention import AttentionLayer
+from opacus_lab.models.GPT2.model.embedding import PositionalEmbedding, TokenEmbedding
+from opacus_lab.models.GPT2.model.feedforward import PositionwiseFeedForward
+from opacus_lab.models.GPT2.model.transformer import Transformer, TransformerLayer
 
 
 def refactor_transformer(
-    GPT2, size="S", use_low_rank=False, lm_head_rank=768, dropout=0.0, perturb=False
+    GPT2,
+    size="S",
+    use_low_rank=False,
+    lm_head_rank=768,
+    dropout=0.0,
+    perturb=False,
+    vocab_size=50257,
 ):
 
     size_assertion_failure_str = f"Value {size} is not a valid size. "
@@ -24,11 +29,11 @@ def refactor_transformer(
 
     size2dim = {"S": 768, "M": 1024, "L": 1280, "XL": 1600, "D": 768}
     size2blks = {"S": 12, "M": 24, "L": 36, "XL": 48, "D": 6}
+    size2head = {"S": 12, "M": 16, "L": 20, "XL": 25, "D": 12}
     # specify some "architecture size" vars
     dim = size2dim[size]
     n_blks = size2blks[size]
-    n_heads = 12
-    vocab_size = 50257
+    n_heads = size2head[size]
 
     # define a bunch of modular subroutines to complete the refactor
 
@@ -36,7 +41,7 @@ def refactor_transformer(
         FC = GPT2MLP.c_fc
         Proj = GPT2MLP.c_proj
 
-        Feedforward = PositionwiseFeedForward(768)
+        Feedforward = PositionwiseFeedForward(dim)
         Feedforward.fc.weight = nn.Parameter(FC.weight.t())
         Feedforward.fc.bias = nn.Parameter(FC.bias)
         Feedforward.proj.weight = nn.Parameter(Proj.weight.t())
@@ -66,7 +71,7 @@ def refactor_transformer(
 
     def refactor_block(GPT2Block):
         # 4X expansion rate is hardcoded below
-        Block = TransformerLayer(n_heads, 768, 4)
+        Block = TransformerLayer(n_heads, dim, 4)
 
         # first copy layernorm weights, no refactor needed
         Block.ln_attn.weight = nn.Parameter(GPT2Block.ln_1.weight)
@@ -85,7 +90,9 @@ def refactor_transformer(
         wpe = PositionalEmbedding(1024, dim)
         wte = TokenEmbedding(vocab_size, dim)
 
-        wte.emb.weight = nn.Parameter(GPT2.transformer.wte.weight)
+        # If we extend the vocabulary, we only set the new embeddings
+        gpt2_vocab_size = GPT2.transformer.wte.weight.shape[0]
+        wte.emb.weight.data[:gpt2_vocab_size] = GPT2.transformer.wte.weight.data
         wpe.emb.weight = nn.Parameter(GPT2.transformer.wpe.weight)
         return wpe, wte
 
@@ -94,7 +101,10 @@ def refactor_transformer(
         ln_head = nn.LayerNorm(dim)
         ln_head.weight = nn.Parameter(GPT2.transformer.ln_f.weight)
         ln_head.bias = nn.Parameter(GPT2.transformer.ln_f.bias)
-        head.weight = nn.Parameter(GPT2.lm_head.weight)
+
+        gpt2_vocab_size = GPT2.lm_head.weight.shape[0]
+        head.weight.data[:gpt2_vocab_size] = GPT2.lm_head.weight.data
+
         return head, ln_head
 
     # a few hardcoded values:
@@ -132,11 +142,20 @@ def refactor_transformer(
     return T
 
 
-def test_refactor(pretrained, refactored):
-    tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
-    string = torch.tensor(tokenizer.encode("this is a test"))
+def test_refactor(pretrained, refactored, vocab_size=50257, exact=True):
+    V = pretrained.transformer.wte.weight.shape[0]
+    B, T, V = 2, 5, vocab_size
+    string = torch.randint(V, size=(B, T), dtype=torch.int32)
     pretrained = pretrained.eval()
     refactored = refactored.eval()
     X = pretrained(string)
     Y = refactored(string)
-    return Y.equal(X.logits)
+
+    # If refactored model has larger vocabulary, we restrict it to the pretrained model's vocab
+    if Y.shape[1] > X.logits.shape[1]:
+        Y = Y[:, : X.logits.shape[1]]
+
+    if exact:
+        return Y.equal(X.logits)
+    else:
+        return torch.norm(X.logits - Y) / torch.norm(X.logits) < 1e-4

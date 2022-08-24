@@ -7,12 +7,11 @@ from typing import List, Optional, Tuple, Union
 import torch
 import torch.nn as nn
 import torch.utils.checkpoint
-from torch.nn import LayerNorm
 
-from .attention import AttentionLayer, Past
-from .embedding import PositionalEmbedding, TokenEmbedding
-from .feedforward import PositionwiseFeedForward
-from .masking import FutureMasking, PadMasking
+from opacus_lab.models.GPT2.model.attention import AttentionLayer, Past
+from opacus_lab.models.GPT2.model.embedding import PositionalEmbedding, TokenEmbedding
+from opacus_lab.models.GPT2.model.feedforward import PositionwiseFeedForward
+from opacus_lab.models.GPT2.model.masking import FutureMasking, PadMasking
 
 
 def factorize_linear_layer(LinearLayer, rank):
@@ -88,8 +87,8 @@ class TransformerLayer(nn.Module):
         super().__init__()
         self.attn = AttentionLayer(heads, dims, dropout)
         self.ff = PositionwiseFeedForward(dims, rate, dropout)
-        self.ln_attn = LayerNorm(dims)
-        self.ln_ff = LayerNorm(dims)
+        self.ln_attn = nn.LayerNorm(dims)
+        self.ln_ff = nn.LayerNorm(dims)
 
     def forward(
         self,
@@ -144,7 +143,7 @@ class Transformer(nn.Module):
         self.transformers = nn.ModuleList(
             [TransformerLayer(heads, dims, rate, dropout) for _ in range(layers)]
         )
-        self.ln_head = LayerNorm(dims)
+        self.ln_head = nn.LayerNorm(dims)
         self.finetune = finetune
 
         if use_low_rank_head and lm_head_rank < dims:
