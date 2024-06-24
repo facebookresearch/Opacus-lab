@@ -15,7 +15,8 @@ from opacus_lab.models.GPT2.model.masking import FutureMasking, PadMasking
 
 
 def factorize_linear_layer(LinearLayer, rank):
-    U, S, V = torch.svd(LinearLayer.weight)
+    U, S, Vh = torch.linalg.svd(LinearLayer.weight, full_matrices=False)
+    V = Vh.mH
     lr_S = S[:rank]
     lr_U = U[:, 0:rank]
     lr_V = V.t()[:rank]
