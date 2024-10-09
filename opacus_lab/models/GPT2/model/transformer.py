@@ -165,7 +165,6 @@ class Transformer(nn.Module):
         past: Optional[List[Past]] = None,
         use_grad_ckpt: bool = False,
     ) -> Union[torch.Tensor, Tuple[torch.Tensor, List[Past]]]:
-
         torch.set_grad_enabled(self.finetune < 0)
         offset = past[0][0].size(-2) if past is not None else 0
 

@@ -104,7 +104,6 @@ def test(
     checkpoint=0,
     checkpoint_path=None,
 ):
-
     model.eval()
     losses = []
     with torch.no_grad():
@@ -137,7 +136,6 @@ def train(
     Huggingface=False,
     checkpoint_path=None,
 ):
-
     model = model.to(device)
     model.train()
     losses = []

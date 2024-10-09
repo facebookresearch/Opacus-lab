@@ -19,7 +19,6 @@ def refactor_transformer(
     perturb=False,
     vocab_size=50257,
 ):
-
     size_assertion_failure_str = f"Value {size} is not a valid size. "
     size_assertion_failure_str += 'Size must be one of: "S" (small), '
     size_assertion_failure_str += '"M" (medium), "L" (large),'
